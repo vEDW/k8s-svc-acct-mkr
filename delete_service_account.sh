@@ -24,7 +24,7 @@ KUBECFG_FILE_NAME="${TARGET_FOLDER}/k8s-${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-con
 
 delete_service_account() {
     echo -e "\\nCreating a service account in ${NAMESPACE} namespace: ${SERVICE_ACCOUNT_NAME}"
-    kubectl create sa "${SERVICE_ACCOUNT_NAME}" --namespace "${NAMESPACE}"
+    kubectl delete sa "${SERVICE_ACCOUNT_NAME}" --namespace "${NAMESPACE}"
 }
 
 get_secret_name_from_service_account() {
