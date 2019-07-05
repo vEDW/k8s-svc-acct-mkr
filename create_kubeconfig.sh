@@ -14,6 +14,7 @@ if [[ -z "$1" ]] || [[ -z "$2" ]]; then
  exit 1
 fi
 
+OS="`uname`"
 SERVICE_ACCOUNT_NAME=$1
 NAMESPACE="$2"
 TARGET_FOLDER="kube"
@@ -38,14 +39,32 @@ get_secret_name_from_service_account() {
 
 extract_ca_crt_from_secret() {
     echo -e -n "\\nExtracting ca.crt from secret..."
-    kubectl get secret --namespace "${NAMESPACE}" "${SECRET_NAME}" -o json | jq \
-    -r '.data["ca.crt"]' | base64 -D > "${TARGET_FOLDER}/ca.crt"
+    if [ OS == "Darwin" ]; then
+        kubectl get secret --namespace "${NAMESPACE}" "${SECRET_NAME}" -o json | jq -r '.data["ca.crt"]' | base64 -D > "${TARGET_FOLDER}/ca.crt"
+    elif [ OS == "Linux" ]; then
+        kubectl get secret --namespace "${NAMESPACE}" "${SECRET_NAME}" -o json | jq -r '.data["ca.crt"]' | base64 -d > "${TARGET_FOLDER}/ca.crt"
+    else
+        # Do something under 64 bits Windows NT platform
+        echo "extract_ca_crt_from_secret() error : "
+        echo "sorry no test done on $OS yet"
+        exit 1
+    fi
+
     printf "done"
 }
 
 get_user_token_from_secret() {
     echo -e -n "\\nGetting user token from secret..."
-    USER_TOKEN=$(kubectl get secret --namespace "${NAMESPACE}" "${SECRET_NAME}" -o json | jq -r '.data["token"]' | base64 -D)
+    if [ OS == "Darwin" ]; then
+        USER_TOKEN=$(kubectl get secret --namespace "${NAMESPACE}" "${SECRET_NAME}" -o json | jq -r '.data["token"]' | base64 -D)        
+    elif [ OS == "Linux" ]; then
+        USER_TOKEN=$(kubectl get secret --namespace "${NAMESPACE}" "${SECRET_NAME}" -o json | jq -r '.data["token"]' | base64 -d)
+    else
+        # Do something under 64 bits Windows NT platform
+        echo "get_user_token_from_secret() error : "
+        echo "sorry no test done on $OS yet"
+        exit 1
+    fi
     printf "done"
 }
 
@@ -109,5 +128,5 @@ create_rbac_yaml
 echo -e "\\nAll done! Test with:"
 echo "KUBECONFIG=${KUBECFG_FILE_NAME} kubectl get pods"
 echo "you should not have any permissions by default - you have just created the authentication part"
-echo "You will need to create RBAC permissions"
+echo "You will need to apply RBAC permissions"
 KUBECONFIG=${KUBECFG_FILE_NAME} kubectl get pods
